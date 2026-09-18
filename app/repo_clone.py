@@ -1,5 +1,12 @@
 import git , uuid, os
 
+class Calculator:
+    def add(self, a, b):
+        return a + b
+    
+    def subtract(self, a, b):
+        return a - b
+    
 def generate_unique_path(mainpath):
     unique_id = str(uuid.uuid4())
     result = os.path.join(mainpath,unique_id)

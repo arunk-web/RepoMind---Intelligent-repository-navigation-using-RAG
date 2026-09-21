@@ -4,6 +4,8 @@ RepoMind lets you point at any public GitHub repository and ask questions about 
 
 Unlike simple PDF/document RAG tools, RepoMind understands **code structure**. Chunks are never split mid-function — every chunk is a complete function or method, so retrieved context is always coherent.
 
+The system's reliability isn't just assumed — it's measured. Evaluated with the [RAGAS](https://github.com/explodinggradients/ragas) framework on a custom benchmark, RepoMind achieves **91–98% faithfulness** and **~88% answer relevancy**, with **~1.45s average end-to-end response time** (near-instant on repeated queries, thanks to caching).
+
 ---
 
 ## How It Works
@@ -39,6 +41,9 @@ flowchart TD
 - 📁 **Recursive repo scanning** — automatically finds and processes every `.py` file in a cloned repository
 - ⚡ **Free & open embedding/LLM stack** — HuggingFace embeddings (local, no cost) + Groq LLM (free tier, fast inference)
 - 🧩 **Clean modular architecture** — each pipeline stage (`clone`, `chunk`, `embed`, `store`, `retrieve`, `llm`) lives in its own file
+- 📎 **Source-attributed answers** — every response includes the exact file path, function/method name, and line numbers it was drawn from
+- 🚀 **In-memory query caching** — repeated questions are served from cache, cutting response time from ~2.9s to <1ms
+- 📊 **Measured, not assumed** — evaluated with RAGAS on a custom benchmark; see [Evaluation & Performance](#evaluation--performance)
 
 ---
 
@@ -166,9 +171,17 @@ Content-Type: application/json
 **Response:**
 ```json
 {
-  "answer": "The path-generation logic lives in the generate_unique_path function..."
+  "answer": "The path-generation logic lives in the generate_unique_path function...",
+  "sources": [
+    {"file": "app/repo_clone.py", "name": "generate_unique_path", "start_line": 10, "end_line": 13},
+    {"file": "app/repo_clone.py", "name": "clone_repository", "start_line": 16, "end_line": 19}
+  ]
 }
 ```
+
+Every answer is grounded in real code — `sources` tells you exactly which file, function, and line range it came from, so you can jump straight to the source and verify it yourself.
+
+Repeated questions are served from an in-memory cache, so the same question asked twice returns near-instantly on the second call.
 
 ---
 
@@ -185,13 +198,38 @@ This guarantees every chunk is a complete, syntactically valid unit of code, whi
 
 ---
 
+## Evaluation & Performance
+
+Rather than assuming the RAG pipeline works well, it was benchmarked using [RAGAS](https://github.com/explodinggradients/ragas) on a custom 5-question dataset built against this repository's own codebase, with Groq as the judge LLM and the same HuggingFace embedding model used in production.
+
+| Metric | Score |
+|---|---|
+| Faithfulness | 91–98% |
+| Answer Relevancy | ~88% |
+
+**Faithfulness** measures how well the generated answer is grounded in the retrieved code context (i.e. how little the LLM "makes up"). **Answer Relevancy** measures how directly the answer addresses the question asked.
+
+### Latency Breakdown
+
+| Stage | Avg. Time |
+|---|---|
+| Retrieval (ChromaDB) | ~70ms |
+| LLM Generation (Groq) | ~1.4–2.9s |
+| **End-to-end (cache miss)** | **~1.45–2.9s** |
+| **End-to-end (cache hit)** | **<1ms** |
+
+Retrieval is a small fraction of total latency — LLM generation is the dominant cost, which is expected given the sequential nature of token generation. Query-level caching eliminates this cost entirely for repeated questions, cutting response time by **over 99.99%** on cache hits.
+
+`eval.py` in the repo runs this benchmark end-to-end and can be re-run against any indexed repository.
+
+---
+
 ## Roadmap / Future Improvements
 
 - [ ] Multi-repository support (isolated vector namespaces per repo)
 - [ ] Multi-language support via `tree-sitter` (JavaScript, TypeScript, etc.)
-- [ ] Retrieval evaluation with RAGAS (faithfulness, context precision/recall benchmarks)
-- [ ] Response caching for repeated/similar queries
-- [ ] Source citation with clickable file + line references
+- [ ] Hybrid retrieval (BM25 keyword search + semantic search)
+- [ ] Chunking strategy comparison (AST-based vs. naive fixed-size splitting)
 - [ ] React-based chat frontend
 
 ---

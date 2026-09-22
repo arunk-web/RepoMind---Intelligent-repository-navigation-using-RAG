@@ -20,3 +20,6 @@ def get_answer_from_llm(question,context):
 
     answer=response.choices[0].message.content
     return answer
+
+
+

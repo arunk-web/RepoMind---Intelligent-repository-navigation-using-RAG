@@ -1,4 +1,5 @@
 import ast , os
+from app.js_chunk import extract_js_chunk
 
 def extract_chunk(file_path):
     chunks = []
@@ -12,7 +13,7 @@ def extract_chunk(file_path):
     tree = ast.parse(code)
     # print(tree)
 
-    # current_class = None
+    
     for node in tree.body:
         if isinstance(node, ast.FunctionDef):
             chunk_lines = code_lines[node.lineno - 1 : node.end_lineno]
@@ -55,15 +56,19 @@ def extract_chunk(file_path):
             # print("end",node.end_lineno)
     return chunks
 
+
 def extract_chunks_from_repo(repo_path):
     all_chunks = []
     for current_folder,subfolders,files in os.walk(repo_path):
         for f in files:
+            final_path = os.path.join(current_folder,f)
             if f.endswith(".py"):
-                final_path = os.path.join(current_folder,f)
                 required_chunk = extract_chunk(final_path)
                 all_chunks.extend(required_chunk)
-
+            elif f.endswith(".js") or f.endswith(".jsx"):
+                required_chunk = extract_js_chunk(final_path)
+                all_chunks.extend(required_chunk)
+                
     return all_chunks
 
 

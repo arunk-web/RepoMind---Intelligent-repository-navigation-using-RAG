@@ -302,41 +302,52 @@ function addUserMessage(text) {
   emptyState.style.display = 'none';
   const msg = document.createElement('div');
   msg.className = 'msg user';
+  
   msg.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
   chat.appendChild(msg);
+
   window.scrollTo(0, document.body.scrollHeight);
 }
 
 function addTypingIndicator() {
   const msg = document.createElement('div');
   msg.className = 'msg assistant';
+
   msg.id = 'typingMsg';
   msg.innerHTML = `<div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
   chat.appendChild(msg);
+
   window.scrollTo(0, document.body.scrollHeight);
 }
 
 function replaceTypingWithAnswer(answer, sources) {
   const typingMsg = document.getElementById('typingMsg');
   if (!typingMsg) return;
+
+
   let sourcesHtml = '';
   if (sources && sources.length) {
     sourcesHtml = '<div class="sources">' + sources.map(s => {
+
       const fileName = (s.file || '').split(/[\\/]/).pop();
       const label = s.name ? `${fileName}::${s.name}` : fileName;
-      return `<span class="source-chip">${escapeHtml(label)}</span>`;
+      return `<span class="source-chip">${escapeHtml(label)}</span>
+      `;
     }).join('') + '</div>';
   }
   typingMsg.innerHTML = `<div class="bubble">${formatAnswer(answer)}</div>${sourcesHtml}`;
   typingMsg.removeAttribute('id');
+
   window.scrollTo(0, document.body.scrollHeight);
 }
 
 async function askQuestion() {
   const question = questionInput.value.trim();
   if (!question) return;
+
   questionInput.value = '';
   askBtn.disabled = true;
+
   addUserMessage(question);
   addTypingIndicator();
 

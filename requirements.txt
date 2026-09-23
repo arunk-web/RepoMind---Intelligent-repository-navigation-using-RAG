@@ -1,3 +1,13 @@
 fastapi
 uvicorn
 gitpython
+sentence-transformers
+chromadb
+groq
+python-dotenv
+ragas
+datasets
+langchain-groq
+langchain-community<0.4.2
+tree-sitter
+tree-sitter-language-pack

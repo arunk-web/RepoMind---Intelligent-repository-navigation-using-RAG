@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RepoMind — Ask any codebase</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #11161d;
+    --border: #232a34;
+    --text: #e6e9ef;
+    --muted: #8892a0;
+    --accent: #d4a24c;
+    --accent-dim: #8a6d34;
+    --mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  header .logo {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  header .tag {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 20px 100px;
+  }
+  .index-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+  }
+  .index-panel label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: var(--mono);
+  }
+  .index-row {
+    display: flex;
+    gap: 10px;
+  }
+  input[type="text"] {
+    flex: 1;
+    background: #0a0e13;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+  }
+  input[type="text"]:focus {
+    border-color: var(--accent-dim);
+  }
+  button {
+    background: var(--accent);
+    color: #16130a;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 7px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--sans);
+    white-space: nowrap;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status {
+    margin-top: 10px;
+    font-size: 12.5px;
+    font-family: var(--mono);
+    color: var(--muted);
+    min-height: 18px;
+  }
+  .status.ok { color: #6fbf73; }
+  .status.err { color: #e0685c; }
+
+  .chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .empty-state {
+    color: var(--muted);
+    text-align: center;
+    padding: 60px 20px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .msg { display: flex; flex-direction: column; gap: 6px; }
+  .msg.user .bubble {
+    align-self: flex-end;
+    background: #1a2130;
+    border: 1px solid var(--border);
+  }
+  .msg.assistant .bubble {
+    align-self: flex-start;
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+  .bubble {
+    max-width: 100%;
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+  .bubble code {
+    font-family: var(--mono);
+    background: #0a0e13;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .sources {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .source-chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(212, 162, 76, 0.08);
+    border: 1px solid rgba(212, 162, 76, 0.25);
+    padding: 3px 8px;
+    border-radius: 5px;
+  }
+  .composer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, var(--bg) 60%, transparent);
+    padding: 24px 20px 20px;
+  }
+  .composer-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px;
+  }
+  .composer textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: var(--sans);
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    max-height: 120px;
+  }
+  .composer button {
+    align-self: flex-end;
+  }
+  .typing {
+    display: flex;
+    gap: 4px;
+    padding: 6px 0;
+  }
+  .typing span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--muted);
+    animation: pulse 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.15s; }
+  .typing span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes pulse {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">RepoMind</span>
+  <span class="tag">ask questions about any GitHub repository</span>
+</header>
+
+<main>
+  <div class="index-panel">
+    <label for="repoUrl">GitHub repository URL</label>
+    <div class="index-row">
+      <input type="text" id="repoUrl" placeholder="https://github.com/owner/repo" />
+      <button id="indexBtn">Index repo</button>
+    </div>
+    <div class="status" id="indexStatus"></div>
+  </div>
+
+  <div class="chat" id="chat">
+    <div class="empty-state" id="emptyState">
+      Index a repository above, then ask a question about its code —<br/>
+      e.g. "how does authentication work?" or "what does this function do?"
+    </div>
+  </div>
+</main>
+
+<div class="composer">
+  <div class="composer-inner">
+    <textarea id="questionInput" placeholder="Ask about the indexed repo…" rows="1"></textarea>
+    <button id="askBtn">Ask</button>
+  </div>
+</div>
+
+<script>
+const indexBtn = document.getElementById('indexBtn');
+const repoUrlInput = document.getElementById('repoUrl');
+const indexStatus = document.getElementById('indexStatus');
+const chat = document.getElementById('chat');
+const emptyState = document.getElementById('emptyState');
+const questionInput = document.getElementById('questionInput');
+const askBtn = document.getElementById('askBtn');
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function formatAnswer(text) {
+  // basic inline code + fenced code block handling
+  let escaped = escapeHtml(text);
+  escaped = escaped.replace(/```([\s\S]*?)```/g, (m, code) => `<code style="display:block;padding:10px;margin:6px 0;overflow-x:auto;">${code}</code>`);
+  escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return escaped;
+}
+
+indexBtn.addEventListener('click', async () => {
+  const url = repoUrlInput.value.trim();
+  if (!url) {
+    indexStatus.textContent = 'Please paste a GitHub repo URL first.';
+    indexStatus.className = 'status err';
+    return;
+  }
+  indexBtn.disabled = true;
+  indexStatus.textContent = 'Cloning, chunking, and embedding the repository — this can take a minute…';
+  indexStatus.className = 'status';
+
+  try {
+    const res = await fetch('/index', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo_url: url })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Indexing failed');
+    indexStatus.textContent = `Indexed successfully — ${data['total chunks']} chunks ready to query.`;
+    indexStatus.className = 'status ok';
+  } catch (err) {
+    indexStatus.textContent = `Error: ${err.message}`;
+    indexStatus.className = 'status err';
+  } finally {
+    indexBtn.disabled = false;
+  }
+});
+
+function addUserMessage(text) {
+  emptyState.style.display = 'none';
+  const msg = document.createElement('div');
+  msg.className = 'msg user';
+  msg.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
+  chat.appendChild(msg);
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+function addTypingIndicator() {
+  const msg = document.createElement('div');
+  msg.className = 'msg assistant';
+  msg.id = 'typingMsg';
+  msg.innerHTML = `<div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  chat.appendChild(msg);
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+function replaceTypingWithAnswer(answer, sources) {
+  const typingMsg = document.getElementById('typingMsg');
+  if (!typingMsg) return;
+  let sourcesHtml = '';
+  if (sources && sources.length) {
+    sourcesHtml = '<div class="sources">' + sources.map(s => {
+      const fileName = (s.file || '').split(/[\\/]/).pop();
+      const label = s.name ? `${fileName}::${s.name}` : fileName;
+      return `<span class="source-chip">${escapeHtml(label)}</span>`;
+    }).join('') + '</div>';
+  }
+  typingMsg.innerHTML = `<div class="bubble">${formatAnswer(answer)}</div>${sourcesHtml}`;
+  typingMsg.removeAttribute('id');
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+async function askQuestion() {
+  const question = questionInput.value.trim();
+  if (!question) return;
+  questionInput.value = '';
+  askBtn.disabled = true;
+  addUserMessage(question);
+  addTypingIndicator();
+
+  try {
+    const res = await fetch('/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Something went wrong');
+    replaceTypingWithAnswer(data.answer, data.sources);
+  } catch (err) {
+    replaceTypingWithAnswer(`Error: ${err.message}`, []);
+  } finally {
+    askBtn.disabled = false;
+  }
+}
+
+askBtn.addEventListener('click', askQuestion);
+questionInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    askQuestion();
+  }
+});
+</script>
+
+</body>
+</html>

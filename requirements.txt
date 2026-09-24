@@ -1,7 +1,8 @@
 fastapi
 uvicorn
 gitpython
-sentence-transformers
+# sentence-transformers
+requests
 chromadb
 groq
 python-dotenv

@@ -14,7 +14,8 @@ def store_chunks(chunks):
     for i ,chunk in enumerate(chunks):
         # ids.append(uuid.uuid4())   method to generate a unique id
         ids.append(str(i))
-        embeddings.append(chunk["embedding"].tolist())
+        # embeddings.append(chunk["embedding"].tolist())
+        embeddings.append(chunk["embedding"])
         metadatas.append({
             "name" : chunk["name"],
             "file" : chunk["file"],

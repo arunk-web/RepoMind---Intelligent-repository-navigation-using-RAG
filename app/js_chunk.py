@@ -88,7 +88,9 @@ def extract_js_chunk(file_path):
         chunks.append({
             "name": final_name,
             "code": function_code,
-            "file": file_path
+            "file": file_path,
+            "start_line": function_node.start_point[0] + 1,
+            "end_line": function_node.end_point[0] + 1,
         })
 
     # print(tree.root_node)

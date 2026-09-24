@@ -256,7 +256,7 @@ Embedding generation uses the **HuggingFace Inference API** rather than loading 
 
 ---
 
-## Roadmap / Future Improvements
+## Future Improvements
 
 - [ ] Multi-repository support (isolated vector namespaces per repo)
 - [ ] Additional language support via `tree-sitter` (TypeScript, Java, etc.)

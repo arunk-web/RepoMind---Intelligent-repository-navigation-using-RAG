@@ -7,6 +7,7 @@ from app.repo_clone import clone_repository
 from app.retrieve import retrieve_chunks
 from app.vector_store import store_chunks
 from app.config import REPO_STORAGE_PATH
+from app.bm25_search import build_bm25_index
 import time
 
 from fastapi.staticfiles import StaticFiles
@@ -36,6 +37,7 @@ def index_repo(request : IndexRequest):
         chunks = extract_chunks_from_repo(path)
         chunks_with_embedding = generate_embedding_for_chunks(chunks)
         store_chunks(chunks_with_embedding)
+        build_bm25_index(chunks)
         return {"message": "repo indexed successfully" ,"total chunks": len(chunks)}
     except Exception as e:
         raise HTTPException(status_code=400 , detail=f"Failed to load index repo: {str(e)}")

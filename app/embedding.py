@@ -14,46 +14,78 @@
 #     return chunks
 
 
+
+
 import os
+import time
+import math
 import requests
 from dotenv import load_dotenv
- 
+
 load_dotenv()
- 
-HF_TOKEN = os.getenv("HF_TOKEN")
-API_URL = "https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5/pipeline/feature-extraction"
-headers = { "Authorization":  f"Bearer {HF_TOKEN}"}
- 
- 
-def generate_embedding(text):
-    response = requests.post (
-        API_URL,
-        headers=headers,
 
-        json={"inputs": text, "options": {"wait_for_model": True}}
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+MODEL = "gemini-embedding-001"
+OUTPUT_DIM = 768
+BASE_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}"
+MAX_CHARS = 6000  # keep very long functions under the model's input limit
+
+
+def _normalize(vec):
+    # Gemini only returns pre-normalized vectors at 3072 dims, so normalize here
+    norm = math.sqrt(sum(x * x for x in vec))
+    return [x / norm for x in vec] if norm else vec
+
+
+def _post(url, payload):
+    if not GEMINI_API_KEY:
+        raise Exception("GEMINI_API_KEY is not set")
+
+    headers = {"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"}
+
+    for attempt in range(4):
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        if response.status_code == 429:
+            time.sleep(2 ** attempt)  # rate limited: wait and retry
+            continue
+        if not response.ok:
+            raise Exception(f"Gemini embedding API error {response.status_code}: {response.text[:200]}")
+        return response.json()
+
+    raise Exception("Gemini embedding API rate limit hit, please try again in a minute")
+
+
+def generate_embedding(text, task_type="RETRIEVAL_QUERY"):
+    data = _post(
+        f"{BASE_URL}:embedContent",
+        {
+            "content": {"parts": [{"text": text[:MAX_CHARS]}]},
+            "taskType": task_type,
+            "outputDimensionality": OUTPUT_DIM,
+        },
     )
-    result = response.json()
- 
-    if isinstance(result, dict) and "error" in result:
+    return _normalize(data["embedding"]["values"])
 
-        raise Exception(f"HF Inference API error: {result['error']}")
- 
-    # API sometimes returns a nested list (token-level); if so, average it down to one vector
-    if isinstance(result[0], list):
 
-        num_tokens = len(result)
-
-        dim = len(result[0])
-
-        averaged = [sum(result[i][j] for i in range(num_tokens)) / num_tokens for j in range(dim)]
-        return averaged
- 
-    return result
- 
- 
 def generate_embedding_for_chunks(chunks):
-    for chunk in chunks:
+    batch_size = 100  # one API call per 100 chunks instead of one per chunk
 
-        chunk["embedding"] = generate_embedding(chunk["code"])
+    for start in range(0, len(chunks), batch_size):
+        batch = chunks[start:start + batch_size]
+
+        batch_requests = [
+            {
+                "model": f"models/{MODEL}",
+                "content": {"parts": [{"text": chunk["code"][:MAX_CHARS]}]},
+                "taskType": "RETRIEVAL_DOCUMENT",
+                "outputDimensionality": OUTPUT_DIM,
+            }
+            for chunk in batch
+        ]
+
+        data = _post(f"{BASE_URL}:batchEmbedContents", {"requests": batch_requests})
+
+        for chunk, emb in zip(batch, data["embeddings"]):
+            chunk["embedding"] = _normalize(emb["values"])
+
     return chunks
- 

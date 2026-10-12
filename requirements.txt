@@ -12,3 +12,5 @@ langchain-groq
 langchain-community<0.4.2
 tree-sitter
 tree-sitter-language-pack
+rank_bm25
+requests

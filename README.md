@@ -22,7 +22,7 @@ flowchart TD
     C --> D2[Parse .js / .jsx files with tree-sitter]
     D1 --> E[Extract functions & class methods as chunks]
     D2 --> E
-    E --> F[Generate embeddings - HuggingFace Inference API]
+    E --> F[Generate embeddings - Gemini Embedding API]
     F --> G[Store chunks + embeddings in ChromaDB]
  
     G --> BM[Build BM25 keyword index from chunks]
@@ -54,7 +54,7 @@ flowchart TD
 - 🧠 **Hybrid retrieval** — combines semantic search (finds code by meaning) with a BM25 keyword index (catches exact function/variable name matches), merging both result sets for every query
 - 💬 **Natural language Q&A** — ask questions like "how does authentication work?" and get a real answer with code references
 - 📁 **Recursive repo scanning** — automatically finds and processes every source file in a cloned repository
-- ⚡ **Free & open embedding/LLM stack** — HuggingFace Inference API for embeddings + Groq LLM (free tier, fast inference)
+- ⚡ **Free & open embedding/LLM stack** — Gemini embedding API for embeddings + Groq LLM (free tier, fast inference)
 - 🧩 **Clean modular architecture** — each pipeline stage (`clone`, `chunk`, `js_chunk`, `embed`, `store`, `retrieve`, `bm25_search`, `llm`) lives in its own file
 - 📎 **Source-attributed answers** — every response includes the exact file path, function/method name, and line numbers it was drawn from
 - 🚀 **In-memory query caching** — repeated questions are served from cache, cutting response time from ~2.9s to <1ms
@@ -71,7 +71,7 @@ flowchart TD
 | Repo Cloning | GitPython |
 | Code Parsing (Python) | Python `ast` module |
 | Code Parsing (JS/JSX) | `tree-sitter` + `tree-sitter-language-pack` |
-| Embeddings | HuggingFace Inference API (`BAAI/bge-small-en-v1.5`) |
+| Embeddings | Gemini Embedding API (`gemini-embedding-001, 768 dim`) |
 | Vector Database | ChromaDB (persistent, local) |
 | Keyword Search | BM25 (`rank_bm25`), merged with semantic results |
 | LLM | Groq API |
@@ -91,7 +91,7 @@ RepoMind/
 │   ├── repo_clone.py     # Clones a GitHub repo into a unique local folder
 │   ├── chunk.py          # Router: dispatches .py -> AST chunker, .js/.jsx -> tree-sitter chunker
 │   ├── js_chunk.py       # tree-sitter based chunking for JavaScript/JSX
-│   ├── embedding.py      # Generates embeddings via HuggingFace Inference API
+│   ├── embedding.py      # Generates embeddings via Gemini Embedding API
 │   ├── vector_store.py   # ChromaDB client + storage logic
 │   ├── bm25_search.py    # BM25 keyword index: build + search
 │   ├── retrieve.py       # Hybrid retrieval: ChromaDB (semantic) + BM25 (keyword), merged
@@ -146,11 +146,11 @@ Create a `.env` file in the project root:
  
 ```env
 GROQ_API_KEY=your_groq_api_key_here
-HF_TOKEN=your_huggingface_token_here
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
  
 - Get a free Groq API key at [console.groq.com](https://console.groq.com).
-- Get a free HuggingFace token (with "Inference" permissions) at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) — used for generating embeddings via the Inference API instead of loading a model locally, keeping the app's memory footprint low enough for free-tier hosting.
+- Get a free Gemini API key at [aistudio.google.com](https://aistudio.google.com) — used for generating embeddings via the Gemini embedding API instead of loading a model locally, keeping the app's memory footprint low enough for free-tier hosting.
 ### 5. Run the server
  
 ```bash
@@ -239,7 +239,7 @@ At query time, both searches run independently — ChromaDB for semantic similar
  
 ## Evaluation & Performance
  
-Rather than assuming the RAG pipeline works well, it was benchmarked using [RAGAS](https://github.com/explodinggradients/ragas) on a custom 5-question dataset built against this repository's own codebase, with Groq as the judge LLM and the same HuggingFace embedding model used in production.
+Rather than assuming the RAG pipeline works well, it was benchmarked using [RAGAS](https://github.com/explodinggradients/ragas) on a custom 5-question dataset built against this repository's own codebase, with Groq as the judge LLM and the same Gemini embedding model used in production.
  
 | Metric | Score |
 |---|---|
@@ -267,7 +267,7 @@ Retrieval is a small fraction of total latency — LLM generation is the dominan
  
 RepoMind is designed to run as a single deployable service — the chat frontend is served as a static file directly from the FastAPI app, so there's no separate frontend host or CORS setup required.
  
-Embedding generation uses the **HuggingFace Inference API** rather than loading a transformer model locally. This was a deliberate memory optimization: loading `sentence-transformers` (and its PyTorch dependency) in-process pushed memory usage past the 512MB limit on free-tier hosts like Render, causing out-of-memory crashes. Offloading embedding computation to HuggingFace's API removed that dependency entirely, bringing the app comfortably within free-tier memory limits with no change to embedding quality.
+Embedding generation uses the **Gemini Embedding API** rather than loading a transformer model locally. This was a deliberate memory optimization: loading `sentence-transformers` (and its PyTorch dependency) in-process pushed memory usage past the 512MB limit on free-tier hosts like Render, causing out-of-memory crashes. Offloading embedding computation to HuggingFace's API removed that dependency entirely, bringing the app comfortably within free-tier memory limits with no change to embedding quality.
  
 ---
  
